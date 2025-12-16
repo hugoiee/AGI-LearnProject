@@ -12,8 +12,30 @@ USER_GENDER = "man"
 # class HttpRequestHandler(user_age):
 #     id: int
 
-# 逻辑运算符
-x = 1
-y = "3"
-z = x and y
-print(z)
+# Python的整数类型
+
+int_one = 100
+int_two = -8080
+int_three = 0xff00
+int_four = 10_000_000_000
+
+print("Python中的整数类型:","\n",
+    int_one, "\n",
+    int_two, "\n",
+    int_three, "\n",
+    int_four
+    )
+
+# Python的浮点类型
+
+float_one = 1.23
+float_two = -89.01
+float_three = 0.0
+float_four = 1.23e9
+
+print("Python中的浮点数类型","\n",
+    float_one, "\n",
+    float_two, "\n",
+    float_three, "\n",
+    float_four
+    )
