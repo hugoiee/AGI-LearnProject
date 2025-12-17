@@ -1,3 +1,8 @@
+print("hello world!")
+message = "Hello world!"
+print(message)
+print("---------------------")
+
 # PEP 8 (Python Enhancement Proposal 8) 风格指南
 # 变量命名：蛇形 全部用小写并使用下划线分隔单词
 from operator import and_
