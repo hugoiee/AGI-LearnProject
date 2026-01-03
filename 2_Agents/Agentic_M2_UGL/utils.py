@@ -11,37 +11,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image  # (kept if you need it elsewhere)
 from dotenv import load_dotenv
-from openai import OpenAI
 from google import genai
 from google.genai import types
 from html import escape
 
 # === Env & Clients ===
 load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-# Both clients read keys from env by default; explicit is also fine:
-openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else OpenAI()
+# Gemini client reads key from env by default; explicit is also fine:
 gemini_client = genai.Client(api_key=gemini_api_key) if gemini_api_key else genai.Client()
 
 
 def get_response(model: str, prompt: str) -> str:
-    if "gemini" in model.lower():
-        # Gemini format
-        response = gemini_client.models.generate_content(
-            model=model,
-            contents=prompt,
-        )
-        return response.text
-
-    else:
-        # Default to OpenAI format for all other models (gpt-4, o3-mini, o1, etc.)
-        response = openai_client.responses.create(
-            model=model,
-            input=prompt,
-        )
-        return response.output_text
+    # Gemini format
+    response = gemini_client.models.generate_content(
+        model=model,
+        contents=prompt,
+    )
+    return response.text
 
 
 # === Data Loading ===
@@ -189,21 +177,3 @@ def image_gemini_call(model_name: str, prompt: str, media_type: str, b64: str) -
     )
 
     return (response.text or "").strip()
-
-
-def image_openai_call(model_name: str, prompt: str, media_type: str, b64: str) -> str:
-    data_url = f"data:{media_type};base64,{b64}"
-    resp = openai_client.responses.create(
-        model=model_name,
-        input=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": prompt},
-                    {"type": "input_image", "image_url": data_url},
-                ],
-            }
-        ],
-    )
-    content = (resp.output_text or "").strip()
-    return content
