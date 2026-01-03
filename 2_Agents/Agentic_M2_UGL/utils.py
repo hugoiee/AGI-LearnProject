@@ -12,28 +12,28 @@ import matplotlib.pyplot as plt
 from PIL import Image  # (kept if you need it elsewhere)
 from dotenv import load_dotenv
 from openai import OpenAI
-from anthropic import Anthropic
+from google import genai
+from google.genai import types
 from html import escape
 
 # === Env & Clients ===
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+gemini_api_key = os.getenv("GEMINI_API_KEY")
 
 # Both clients read keys from env by default; explicit is also fine:
 openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else OpenAI()
-anthropic_client = Anthropic(api_key=anthropic_api_key) if anthropic_api_key else Anthropic()
+gemini_client = genai.Client(api_key=gemini_api_key) if gemini_api_key else genai.Client()
 
 
 def get_response(model: str, prompt: str) -> str:
-    if "claude" in model.lower() or "anthropic" in model.lower():
-        # Anthropic Claude format
-        message = anthropic_client.messages.create(
+    if "gemini" in model.lower():
+        # Gemini format
+        response = gemini_client.models.generate_content(
             model=model,
-            max_tokens=1000,
-            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}]}],
+            contents=prompt,
         )
-        return message.content[0].text
+        return response.text
 
     else:
         # Default to OpenAI format for all other models (gpt-4, o3-mini, o1, etc.)
@@ -120,7 +120,7 @@ def print_html(content: Any, title: str | None = None, is_image: bool = False):
     css = """
     <style>
     .pretty-card{
-      font-family: ui-sans-serif, system-ui;
+      font-family: PingFang-SC;
       border: 2px solid transparent;
       border-radius: 14px;
       padding: 14px 16px;
@@ -170,34 +170,25 @@ def print_html(content: Any, title: str | None = None, is_image: bool = False):
     display(HTML(css + card))
 
 
-def image_anthropic_call(model_name: str, prompt: str, media_type: str, b64: str) -> str:
+def image_gemini_call(model_name: str, prompt: str, media_type: str, b64: str) -> str:
     """
-    Call Anthropic Claude (messages.create) with text+image and return *all* text blocks concatenated.
-    Adds a system message to enforce strict JSON output.
+    Call Gemini with text+image and return text output.
+    Adds a system instruction to enforce strict JSON output.
     """
-    msg = anthropic_client.messages.create(
+    response = gemini_client.models.generate_content(
         model=model_name,
-        max_tokens=2000,
-        temperature=0,
-        system=(
-            "You are a careful assistant. Respond with a single valid JSON object only. "
-            "Do not include markdown, code fences, or commentary outside JSON."
+        contents=[
+            prompt,
+            types.Part.from_bytes(data=base64.b64decode(b64), mime_type=media_type),
+        ],
+        config=types.GenerateContentConfig(
+            system_instruction="You are a careful assistant. Respond with a single valid JSON object only. Do not include markdown, code fences, or commentary outside JSON.",
+            temperature=0,
+            max_output_tokens=2000,
         ),
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-            ],
-        }],
     )
 
-    # Anthropic returns a list of content blocks; collect all text
-    parts = []
-    for block in (msg.content or []):
-        if getattr(block, "type", None) == "text":
-            parts.append(block.text)
-    return "".join(parts).strip()
+    return (response.text or "").strip()
 
 
 def image_openai_call(model_name: str, prompt: str, media_type: str, b64: str) -> str:
